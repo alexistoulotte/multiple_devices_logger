@@ -13,6 +13,8 @@ class MultipleDevicesLogger < Logger
     'unknown' => UNKNOWN,
   }.freeze
 
+  attr_reader :default_device
+
   def initialize
     super(nil)
     clear_devices
@@ -45,9 +47,7 @@ class MultipleDevicesLogger < Logger
     if severities.empty?
       keys = SEVERITIES.values
     else
-      keys = severities.map do |severity|
-        severity.to_s.strip.downcase == 'default' ? :default : parse_severities_with_operator(severity)
-      end.flatten.uniq
+      keys = severities.map { |severity| parse_severities_with_operator(severity) }.flatten.uniq
     end
     keys.each do |key|
       @devices[key] ||= []
@@ -60,8 +60,12 @@ class MultipleDevicesLogger < Logger
     @devices = {}
   end
 
+  def default_device=(value)
+    @default_device = value.is_a?(LogDevice) ? value : LogDevice.new(value)
+  end
+
   def devices_for(severity)
-    @devices[parse_severity(severity)] || @devices[:default] || []
+    @devices[parse_severity(severity)] || [default_device].compact || []
   end
 
   def reopen(log = nil)

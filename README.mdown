@@ -32,11 +32,11 @@ Note that severty can specified as string or symbol.
 
 ### Define default device
 
-A default device could be defined. It is used where there is no device for
-given severity.
+If there is no device for given severity, default device is used. It can be
+defined thanks to `default_device` accessor.
 
 ```ruby
-logger.add_device(STDERR, :default)
+logger.default_device = STDERR
 ```
 
 ### Adding a device for all severities

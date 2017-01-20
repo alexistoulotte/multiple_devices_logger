@@ -291,22 +291,10 @@ describe MultipleDevicesLogger do
       logger.add_device(STDOUT, Logger::INFO, foo: 'bar')
     end
 
-    it 'accepts default severity' do
+    it 'raise an error for default severity' do
       expect {
         logger.add_device(STDERR, 'default')
-      }.not_to raise_error
-    end
-
-    it 'accepts default severity (as symbol)' do
-      expect {
-        logger.add_device(STDERR, :default)
-      }.not_to raise_error
-    end
-
-    it 'accepts default severity (with spaces, ignore case)' do
-      expect {
-        logger.add_device(STDERR, "   DefaULt\n")
-      }.not_to raise_error
+      }.to raise_error(ArgumentError, 'Invalid log severity: "default"')
     end
 
   end
@@ -318,6 +306,32 @@ describe MultipleDevicesLogger do
       expect {
         logger.clear_devices
       }.to change { logger.devices_for(Logger::DEBUG) }.to([])
+    end
+
+  end
+
+  describe '#default_device' do
+
+    it 'is nil by default' do
+      expect(logger.default_device).to be_nil
+    end
+
+    it 'can be changed' do
+      logger.default_device = STDERR
+      expect(logger.default_device).not_to be_nil
+    end
+
+    it 'is converted to a LogDevice when set' do
+      logger.default_device = STDERR
+      expect(logger.default_device).to be_a(Logger::LogDevice)
+      expect(logger.default_device.dev).to be(STDERR)
+    end
+
+    it 'is not converted to a LogDevice when a LogDevice is set' do
+      device = Logger::LogDevice.new(STDOUT)
+      logger.default_device = device
+      expect(logger.default_device).to be(device)
+      expect(logger.default_device.dev).to be(STDOUT)
     end
 
   end
@@ -340,24 +354,19 @@ describe MultipleDevicesLogger do
     end
 
     it 'returns default device if there is no device for given severity' do
-      logger.add_device(STDERR, :default).add_device(STDOUT, '>= warn')
-      expect(logger.devices_for(:debug).first.dev).to eq(STDERR)
-      expect(logger.devices_for(:warn).first.dev).to eq(STDOUT)
-      expect(logger.devices_for(:error).first.dev).to eq(STDOUT)
+      logger.default_device = STDERR
+      logger.add_device(STDOUT, '>= warn')
+      expect(logger.devices_for(:debug).first.dev).to be(STDERR)
+      expect(logger.devices_for(:warn).first.dev).to be(STDOUT)
+      expect(logger.devices_for(:error).first.dev).to be(STDOUT)
     end
 
     it 'default is never used if a logger has been added to all severity' do
-      logger.add_device(STDERR, :default).add_device(STDOUT)
-      expect(logger.devices_for(:debug).first.dev).to eq(STDOUT)
-      expect(logger.devices_for(:warn).first.dev).to eq(STDOUT)
-      expect(logger.devices_for(:error).first.dev).to eq(STDOUT)
-    end
-
-    it 'accepts default and other options' do
-      logger.add_device(STDOUT, :default, Logger::WARN)
-      expect(logger.devices_for(:debug).first.dev).to eq(STDOUT)
-      expect(logger.devices_for(:warn).first.dev).to eq(STDOUT)
-      expect(logger.devices_for(:error).first.dev).to eq(STDOUT)
+      logger.default_device = STDERR
+      logger.add_device(STDOUT)
+      expect(logger.devices_for(:debug).first.dev).to be(STDOUT)
+      expect(logger.devices_for(:warn).first.dev).to be(STDOUT)
+      expect(logger.devices_for(:error).first.dev).to be(STDOUT)
     end
 
   end
