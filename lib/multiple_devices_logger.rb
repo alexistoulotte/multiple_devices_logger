@@ -4,7 +4,7 @@ require 'logger'
 
 class MultipleDevicesLogger < Logger
 
-  LEVELS = {
+  SEVERITIES = {
     'debug' => DEBUG,
     'info' => INFO,
     'warn' => WARN,
@@ -19,18 +19,34 @@ class MultipleDevicesLogger < Logger
   end
 
   def add(severity, message = nil, progname = nil)
-    # TODO
+    severity ||= UNKNOWN
+    return true if severity < level
+    progname ||= self.progname
+    if message.nil?
+      if block_given?
+        message = yield
+      else
+        message = progname
+        progname = self.progname
+      end
+    end
+    text = format_message(format_severity(severity), Time.now, progname, message)
+    devices_for(severity).each do |device|
+      device.write(text)
+    end
+    true
   end
+  alias_method :log, :add
 
-  def add_device(device, *levels)
-    levels = [levels].flatten
-    options = levels.extract_options!
+  def add_device(device, *severities)
+    severities = [severities].flatten
+    options = severities.extract_options!
     device = LogDevice.new(device, options) unless device.is_a?(LogDevice)
-    if levels.empty?
-      keys = LEVELS.values
+    if severities.empty?
+      keys = SEVERITIES.values
     else
-      keys = levels.map do |level|
-        level.to_s.strip.downcase == 'default' ? :default : parse_levels_with_operator(level)
+      keys = severities.map do |severity|
+        severity.to_s.strip.downcase == 'default' ? :default : parse_severities_with_operator(severity)
       end.flatten.uniq
     end
     keys.each do |key|
@@ -44,8 +60,8 @@ class MultipleDevicesLogger < Logger
     @devices = {}
   end
 
-  def devices_for(level)
-    @devices[parse_level(level)] || @devices[:default] || []
+  def devices_for(severity)
+    @devices[parse_severity(severity)] || @devices[:default] || []
   end
 
   def reopen(log = nil)
@@ -54,20 +70,20 @@ class MultipleDevicesLogger < Logger
 
   private
 
-  def parse_level(value)
+  def parse_severity(value)
     int_value = value.is_a?(Fixnum) ? value : (Integer(value.to_s) rescue nil)
-    return int_value if LEVELS.values.include?(int_value)
-    level = value.to_s
-    LEVELS[value.to_s.strip.downcase] || raise(ArgumentError.new("Invalid log level: #{value.inspect}"))
+    return int_value if SEVERITIES.values.include?(int_value)
+    severity = value.to_s
+    SEVERITIES[value.to_s.strip.downcase] || raise(ArgumentError.new("Invalid log severity: #{value.inspect}"))
   end
 
-  def parse_levels_with_operator(value)
+  def parse_severities_with_operator(value)
     if match = value.to_s.strip.match(/^([<>]=?)\s*(.+)$/)
       operator = match[1]
-      level = parse_level(match[2])
-      return LEVELS.values.select { |l| l.send(operator, level) }
+      severity = parse_severity(match[2])
+      return SEVERITIES.values.select { |l| l.send(operator, severity) }
     end
-    [parse_level(value)]
+    [parse_severity(value)]
   end
 
 end
