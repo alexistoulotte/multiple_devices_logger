@@ -1,0 +1,74 @@
+# MultipleDevicesLogger
+
+Logger that support many and different devices for specified levels.
+
+## Setup
+
+Just add this into your `Gemfile`:
+
+```ruby
+gem 'multiple_devices_logger'
+```
+
+Then, just run a `bundle install`.
+
+## Usage
+
+### Simple usage
+
+This will add `STDOUT` device for `debug` and `info` severities and a file
+for all others.
+
+```ruby
+require 'multiple_devices_logger'
+
+logger = MultipleDevicesLogger.new
+logger.add_device(STDOUT, Logger::DEBUG, Logger::INFO)
+logger.add_device('/tmp/logs', Logger::WARN, Logger::ERROR, Logger::FATAL)
+logger.warn('BAM!')
+```
+
+Note that severty can specified as string or symbol.
+
+### Define default device
+
+A default device could be defined. It is used where there is no device for
+given severity.
+
+```ruby
+logger.add_device(STDERR, :default)
+```
+
+### Adding a device for all severities
+
+If you don't specify any severity to `#add_device` method, specified device
+will be added to all sevrities.
+
+Here is an example that logs all messages to `STDERR` and fatal messages to
+both a file and `STDERR`.
+
+```ruby
+logger.add_device(STDERR)
+logger.add_device('/tmp/fatal.log', :fatal)
+```
+
+### Operators
+
+To simplify devices definition, you can use `>`, `>=`, `<`, `<=` operators:
+
+```ruby
+logger.add_device('/var/log/myapp.log', '>= warn')
+```
+
+### Clear all devices
+
+Just use `#clear_devices` to clear all registered devices:
+
+```ruby
+logger.clear_devices
+```
+
+## Executing test suite
+
+This project is fully tested with [Rspec 3](http://github.com/rspec/rspec).
+Just run `bundle exec rake` (after a `bundle install`).
