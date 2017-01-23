@@ -18,7 +18,6 @@ class MultipleDevicesLogger < Logger
   def initialize
     super(nil)
     clear_devices
-    clear_formatters
   end
 
   def add(severity, message = nil, progname = nil)
@@ -33,9 +32,9 @@ class MultipleDevicesLogger < Logger
         progname = self.progname
       end
     end
-    text = formatter_for(severity).call(format_severity(severity), Time.now, progname, message)
     devices_for(severity).each do |device|
-      device.write(text)
+      formatter = device.formatter || self.formatter || @default_formatter
+      device.write(formatter.call(format_severity(severity), Time.now, progname, message))
     end
     true
   end
@@ -44,7 +43,13 @@ class MultipleDevicesLogger < Logger
   def add_device(device, *severities)
     severities = [severities].flatten
     options = severities.extract_options!
-    device = LogDevice.new(device, options) unless device.is_a?(LogDevice)
+    formatter = nil
+    if options.key?(:formatter)
+      formatter = options.delete(:formatter)
+      raise ArgumentError.new("Formatter must respond to #call, #{formatter.inspect} given") unless formatter.respond_to?(:call)
+    end
+    device = LogDevice.new(device, options) unless device.is_a?(Logger::LogDevice)
+    device.formatter = formatter
     if severities.empty?
       keys = SEVERITIES.values
     else
@@ -61,10 +66,6 @@ class MultipleDevicesLogger < Logger
     @devices = {}
   end
 
-  def clear_formatters
-    @formatters = {}
-  end
-
   def default_device=(value)
     @default_device = value.is_a?(LogDevice) ? value : LogDevice.new(value)
   end
@@ -73,27 +74,8 @@ class MultipleDevicesLogger < Logger
     @devices[parse_severity(severity)] || [default_device].compact || []
   end
 
-  def formatter_for(severity)
-    @formatters[parse_severity(severity)] || formatter || @default_formatter
-  end
-
   def reopen(log = nil)
     raise NotImplementedError.new("#{self.class}#reopen")
-  end
-
-  def set_formatter(*severities)
-    formatter = block_given? ? Proc.new { |*args| yield(*args) } : severities.shift
-    raise ArgumentError.new("Formatter must be specified via first parameter or a block, #{formatter.inspect} given") unless formatter.respond_to?(:call)
-    severities = [severities].flatten
-    if severities.empty?
-      keys = SEVERITIES.values
-    else
-      keys = severities.map { |severity| parse_severities_with_operator(severity) }.flatten.uniq
-    end
-    keys.each do |key|
-      @formatters[key] = formatter
-    end
-    self
   end
 
   private
@@ -117,5 +99,11 @@ class MultipleDevicesLogger < Logger
     end
     [parse_severity(value)]
   end
+
+end
+
+class Logger::LogDevice
+
+  attr_accessor :formatter
 
 end

@@ -68,25 +68,16 @@ Just use `#clear_devices` to clear all registered devices:
 logger.clear_devices
 ```
 
-### Custom formatter for each severity
+### Custom formatter for each device
 
-`MultipleDevicesLogger` allows you to configure a formatter for each
-severity via `#set_formatter` method, here is some examples:
+You can configure a formatter for each device via `:formatter` option, here
+is an example:
 
 ```ruby
-# Specify formatter as a block
-logger.set_formatter(:debug) { |severity, time, progname, message| "[#{severity}] #{message}" }
-
-# Formatter can also be specified as first argument
-my_formatter = -> { |severity, time, progname, message| "#{progname} -> #{message} @ #{time}" }
-logger.set_formatter(my_formatter, Logger::ERROR)
-
-# Operators can also be used
-logger.set_formatter('>= warn') { |severity, time, progname, message| "[#{severity}] #{message}" }
-
-# Like #add_device, many severities can be specified
-logger.set_formatter(:debug, :info) { |severity, time, progname, message| "[#{severity}] #{message}" }
+logger.add_device(STDERR, :debug, formatter: -> (severity, time, progname, message) { "[#{severity}] #{message}\n" })
 ```
+
+Otherwise default formatter is used.
 
 ## Executing test suite
 
