@@ -74,7 +74,7 @@ logger.clear_devices
 severity via `#set_formatter` method, here is some examples:
 
 ```ruby
-# You can specify formatter via a block
+# Specify formatter as a block
 logger.set_formatter(:debug) { |severity, time, progname, message| "[#{severity}] #{message}" }
 
 # Formatter can also be specified as first argument
@@ -82,8 +82,7 @@ my_formatter = -> { |severity, time, progname, message| "#{progname} -> #{messag
 logger.set_formatter(my_formatter, Logger::ERROR)
 
 # Operators can also be used
-my_formatter = -> { |severity, time, progname, message| "#{progname} -> #{message} @ #{time}" }
-logger.set_formatter(my_formatter, '>= warn')
+logger.set_formatter('>= warn') { |severity, time, progname, message| "[#{severity}] #{message}" }
 
 # Like #add_device, many severities can be specified
 logger.set_formatter(:debug, :info) { |severity, time, progname, message| "[#{severity}] #{message}" }
