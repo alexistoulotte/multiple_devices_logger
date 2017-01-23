@@ -70,7 +70,7 @@ logger.clear_devices
 
 ### Custom formatter for each severity
 
-`multiple_devices_logger` allows you to configure a formatter for each
+`MultipleDevicesLogger` allows you to configure a formatter for each
 severity via `#set_formatter` method, here is some examples:
 
 ```ruby
