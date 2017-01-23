@@ -18,6 +18,7 @@ class MultipleDevicesLogger < Logger
   def initialize
     super(nil)
     clear_devices
+    clear_formatters
   end
 
   def add(severity, message = nil, progname = nil)
@@ -32,7 +33,7 @@ class MultipleDevicesLogger < Logger
         progname = self.progname
       end
     end
-    text = format_message(format_severity(severity), Time.now, progname, message)
+    text = formatter_for(severity).call(format_severity(severity), Time.now, progname, message)
     devices_for(severity).each do |device|
       device.write(text)
     end
@@ -60,6 +61,10 @@ class MultipleDevicesLogger < Logger
     @devices = {}
   end
 
+  def clear_formatters
+    @formatters = {}
+  end
+
   def default_device=(value)
     @default_device = value.is_a?(LogDevice) ? value : LogDevice.new(value)
   end
@@ -68,11 +73,34 @@ class MultipleDevicesLogger < Logger
     @devices[parse_severity(severity)] || [default_device].compact || []
   end
 
+  def formatter_for(severity)
+    @formatters[parse_severity(severity)] || formatter || @default_formatter
+  end
+
   def reopen(log = nil)
     raise NotImplementedError.new("#{self.class}#reopen")
   end
 
+  def set_formatter(*severities)
+    formatter = block_given? ? Proc.new { |*args| yield(*args) } : severities.shift
+    raise ArgumentError.new("Formatter must be specified via first parameter or a block, #{formatter.inspect} given") unless formatter.respond_to?(:call)
+    severities = [severities].flatten
+    if severities.empty?
+      keys = SEVERITIES.values
+    else
+      keys = severities.map { |severity| parse_severities_with_operator(severity) }.flatten.uniq
+    end
+    keys.each do |key|
+      @formatters[key] = formatter
+    end
+    self
+  end
+
   private
+
+  def format_message(severity, datetime, progname, msg)
+    raise NotImplementedError.new("#{self.class}#format_message")
+  end
 
   def parse_severity(value)
     int_value = value.is_a?(Fixnum) ? value : (Integer(value.to_s) rescue nil)

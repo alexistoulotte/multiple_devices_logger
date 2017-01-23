@@ -73,10 +73,27 @@ describe MultipleDevicesLogger do
       logger.add(Logger::WARN, nil, 'BAM!')
     end
 
-    it 'a formatter could be given' do
+    it 'use formatter set via #set_formatter method' do
+      logger.set_formatter('> debug') { |severity, time, progname, message| "Hello #{message}" }
+      expect(STDERR).to receive(:write).with('Hello John')
+      logger.add(Logger::WARN, 'John')
+    end
+
+    it 'use default formatter if not set' do
       logger.formatter = -> (severity, time, progname, message) { "Hello #{progname}: #{message}"  }
       expect(STDERR).to receive(:write).with('Hello World: cool')
       logger.add(Logger::WARN, 'cool', 'World')
+    end
+
+    it 'use default formatter if formatter set via #set_formatter does not match severity' do
+      logger.add_device(STDERR, 'debug')
+      logger.set_formatter(:debug) { |severity, time, progname, message| "Hello #{message}" }
+
+      expect(STDERR).to receive(:write).with(/WARN -- : John/)
+      logger.add(Logger::WARN, 'John')
+
+      expect(STDERR).to receive(:write).with('Hello John')
+      logger.add(Logger::DEBUG, 'John')
     end
 
   end
@@ -310,6 +327,19 @@ describe MultipleDevicesLogger do
 
   end
 
+  describe '#clear_formatters' do
+
+    it 'removes registerd formatters' do
+      default_formatter = logger.formatter_for(:info)
+      formatter = -> { 'hello' }
+      logger.set_formatter(formatter, :info)
+      expect {
+        logger.clear_formatters
+      }.to change { logger.formatter_for(:info) }.from(formatter).to(default_formatter)
+    end
+
+  end
+
   describe '#default_device' do
 
     it 'is nil by default' do
@@ -371,6 +401,40 @@ describe MultipleDevicesLogger do
 
   end
 
+  describe '#formatter_for' do
+
+    it 'returns a default formatter by default' do
+      expect(logger.formatter_for(:debug)).to be_a(Logger::Formatter)
+    end
+
+    it 'returns formatter set via #formatter= instead' do
+      formatter = -> {}
+      logger.formatter = formatter
+      expect(logger.formatter_for(:info)).to be(formatter)
+    end
+
+    it 'returns formatter set via #set_formatter method' do
+      formatter = -> {}
+      logger.set_formatter(formatter, :debug)
+      expect(logger.formatter_for(:debug)).to be(formatter)
+    end
+
+    it 'priority is #set_formatter -> #formatter' do
+      logger.formatter = -> { 'default' }
+      logger.set_formatter(:info) { 'info formatter' }
+      expect(logger.formatter_for(:debug).call).to eq('default')
+      expect(logger.formatter_for(:info).call).to eq('info formatter')
+      expect(logger.formatter_for(:warn).call).to eq('default')
+    end
+
+    it 'raise an error if severity is invalid' do
+      expect {
+        logger.formatter_for(:bim)
+      }.to raise_error(ArgumentError, "Invalid log severity: :bim")
+    end
+
+  end
+
   describe '#initialize' do
 
     it 'accepts no argument' do
@@ -415,6 +479,73 @@ describe MultipleDevicesLogger do
       expect {
         logger.reopen
       }.to raise_error(NotImplementedError, 'MultipleDevicesLogger#reopen')
+    end
+
+  end
+
+  describe '#set_formatter' do
+
+    it 'sets formatter for devices of given levels' do
+      logger.add_device(STDERR, '> warn')
+      logger.add_device(STDOUT, 'debug')
+      default_formatter = -> { 'world' }
+      formatter = -> { 'hello' }
+      logger.formatter = default_formatter
+
+      expect {
+        logger.set_formatter(formatter, '> info')
+      }.to change { logger.formatter_for('error') }.from(default_formatter).to(formatter)
+
+      expect(logger.formatter_for('debug')).to be(default_formatter)
+    end
+
+    it 'use given block if formatter is not specified' do
+      expect {
+        logger.set_formatter('> debug') { |severity, time, progname, message| "Hello #{message}" }
+      }.to change { logger.formatter_for('info').call('WARN', Time.now, nil, 'John') }.to('Hello John')
+    end
+
+    it 'raise an error if no formatter or block is given' do
+      expect {
+        logger.set_formatter('> debug')
+      }.to raise_error(ArgumentError, 'Formatter must be specified via first parameter or a block, "> debug" given')
+    end
+
+    it 'can be set for all devices' do
+      formatter = -> { 'hello' }
+      logger.add_device(STDERR)
+      logger.set_formatter(formatter, '> debug')
+      expect(logger.formatter_for('info')).to be(formatter)
+      expect(logger.formatter_for('error')).to be(formatter)
+    end
+
+    it 'raise an error if not a proc' do
+      expect {
+        logger.set_formatter(:foo, '> debug')
+      }.to raise_error(ArgumentError, 'Formatter must be specified via first parameter or a block, :foo given')
+    end
+
+    it 'raise an error if no parameter is given' do
+      expect {
+        logger.set_formatter
+      }.to raise_error(ArgumentError, 'Formatter must be specified via first parameter or a block, nil given')
+    end
+
+    it 'severities can be specified as array' do
+      formatter = -> { 'hello' }
+      logger.add_device(STDERR)
+      logger.set_formatter(formatter, ['debug', 'info'])
+      expect(logger.formatter_for('info')).to be(formatter)
+    end
+
+    it 'raise an error if severity is invalid' do
+      expect {
+        logger.set_formatter(:foo) { 'hello' }
+      }.to raise_error(ArgumentError, 'Invalid log severity: :foo')
+    end
+
+    it 'returns self' do
+      expect(logger.set_formatter(-> {}, :debug)).to be(logger)
     end
 
   end
