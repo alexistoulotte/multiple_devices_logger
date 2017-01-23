@@ -1,5 +1,3 @@
-require 'active_support/core_ext/array'
-require 'active_support/core_ext/object'
 require 'logger'
 
 class MultipleDevicesLogger < Logger
@@ -42,7 +40,7 @@ class MultipleDevicesLogger < Logger
 
   def add_device(device, *severities)
     severities = [severities].flatten
-    options = severities.extract_options!
+    options = severities.last.is_a?(Hash) ? severities.pop : {}
     formatter = nil
     if options.key?(:formatter)
       formatter = options.delete(:formatter)
@@ -72,6 +70,10 @@ class MultipleDevicesLogger < Logger
 
   def devices_for(severity)
     @devices[parse_severity(severity)] || [default_device].compact || []
+  end
+
+  def level=(value)
+    super(parse_severity(value))
   end
 
   def reopen(log = nil)

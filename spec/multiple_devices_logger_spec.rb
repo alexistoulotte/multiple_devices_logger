@@ -119,7 +119,7 @@ describe MultipleDevicesLogger do
     it 'severity can be specified as constant' do
       expect {
         logger.add_device(STDERR, Logger::WARN)
-      }.to change { logger.devices_for(Logger::WARN).first.try(:dev) }.from(nil).to(STDERR)
+      }.to change { logger.devices_for(Logger::WARN).size }.by(1)
     end
 
     it 'severity can be specified as symbol' do
@@ -427,6 +427,34 @@ describe MultipleDevicesLogger do
       expect {
         logger.add_device(STDOUT, '> WARN')
       }.not_to change { logger.level }
+    end
+
+  end
+
+  describe '#level=' do
+
+    it 'changes level' do
+      expect {
+        logger.level = Logger::INFO
+      }.to change { logger.level }.to(Logger::INFO)
+    end
+
+    it 'accepts symbols' do
+      expect {
+        logger.level = :warn
+      }.to change { logger.level }.to(Logger::WARN)
+    end
+
+    it 'accepts string' do
+      expect {
+        logger.level = 'Error'
+      }.to change { logger.level }.to(Logger::ERROR)
+    end
+
+    it 'raise an error if invalid' do
+      expect {
+        logger.level = :foo
+      }.to raise_error(ArgumentError, 'Invalid log severity: :foo')
     end
 
   end
