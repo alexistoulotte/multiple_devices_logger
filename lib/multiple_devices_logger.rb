@@ -87,7 +87,7 @@ class MultipleDevicesLogger < Logger
   end
 
   def parse_severity(value)
-    int_value = value.is_a?(Fixnum) ? value : (Integer(value.to_s) rescue nil)
+    int_value = value.is_a?(Integer) ? value : (Integer(value.to_s) rescue nil)
     return int_value if SEVERITIES.values.include?(int_value)
     severity = value.to_s
     SEVERITIES[value.to_s.strip.downcase] || raise(ArgumentError.new("Invalid log severity: #{value.inspect}"))
