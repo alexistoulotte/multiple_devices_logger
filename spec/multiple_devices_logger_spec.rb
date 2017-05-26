@@ -98,6 +98,29 @@ describe MultipleDevicesLogger do
       logger.add(Logger::INFO, 'John')
     end
 
+    it 'is correct with an exception' do
+      expect(STDERR).to receive(:write).with(/WARN -- : BAM! \(IOError\)/)
+      logger.add(Logger::WARN, IOError.new('BAM!'))
+    end
+
+    it 'does nothing if exception is ignored' do
+      logger.ignore_exceptions(IOError)
+      expect(STDERR).not_to receive(:write)
+      logger.add(Logger::WARN, IOError.new('BAM!'))
+    end
+
+    it 'does nothing if exception is ignored (on device)' do
+      logger.add_device(STDOUT, ignore_exceptions: IOError)
+      expect(STDERR).to receive(:write)
+      expect(STDOUT).not_to receive(:write)
+      logger.add(Logger::WARN, IOError.new('BAM!'))
+    end
+
+    it 'returns false if exception is ignored' do
+      logger.ignore_exceptions(IOError)
+      expect(logger.add(Logger::WARN, IOError.new('BAM!'))).to be(false)
+    end
+
   end
 
   describe '#add_device' do
@@ -327,6 +350,11 @@ describe MultipleDevicesLogger do
       expect {
         logger.add_device(STDOUT, formatter: :foo)
       }.to raise_error(ArgumentError, 'Formatter must respond to #call, :foo given')
+    end
+
+    it 'accepts :ignore_exceptions option' do
+      logger.add_device(STDERR, :debug, ignore_exceptions: [IOError, ArgumentError])
+      expect(logger.devices_for(:debug).first.ignored_exception_classes).to eq([IOError, ArgumentError])
     end
 
   end

@@ -1,3 +1,5 @@
+require 'active_support/core_ext/module'
+require 'active_support/core_ext/string'
 require 'logger'
 
 class MultipleDevicesLogger < Logger
@@ -30,7 +32,9 @@ class MultipleDevicesLogger < Logger
         progname = self.progname
       end
     end
+    return false if exception_ignored?(message)
     devices_for(severity).each do |device|
+      next if device.exception_ignored?(message)
       formatter = device.formatter || self.formatter || @default_formatter
       device.write(formatter.call(format_severity(severity), Time.now, progname, message))
     end
@@ -46,8 +50,10 @@ class MultipleDevicesLogger < Logger
       formatter = options.delete(:formatter)
       raise ArgumentError.new("Formatter must respond to #call, #{formatter.inspect} given") unless formatter.respond_to?(:call)
     end
+    ignored_exceptions = options.delete(:ignore_exceptions)
     device = LogDevice.new(device, options) unless device.is_a?(Logger::LogDevice)
     device.formatter = formatter
+    device.ignore_exceptions(ignored_exceptions) if ignored_exceptions.present?
     if severities.empty?
       keys = SEVERITIES.values
     else
@@ -109,3 +115,8 @@ class Logger::LogDevice
   attr_accessor :formatter
 
 end
+
+require 'multiple_devices_logger/ignore_exceptions'
+
+MultipleDevicesLogger.send(:include, MultipleDevicesLogger::IgnoreExceptions)
+Logger::LogDevice.send(:include, MultipleDevicesLogger::IgnoreExceptions)

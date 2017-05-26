@@ -79,6 +79,21 @@ logger.add_device(STDERR, :debug, formatter: -> (severity, time, progname, messa
 
 Otherwise default formatter is used.
 
+### Ignore exceptions from logging
+
+You can ignore some exceptions to be logged globally:
+
+```ruby
+logger.ignore_exceptions(IOError, ArgumentError)
+```
+
+Or just for some devices with `:ignore_exceptions` otpion when you register
+the device:
+
+```ruby
+logger.add_device(STDERR, :debug, ignore_exceptions: [IOError, ArgumentError])
+```
+
 ## Executing test suite
 
 This project is fully tested with [Rspec 3](http://github.com/rspec/rspec).
