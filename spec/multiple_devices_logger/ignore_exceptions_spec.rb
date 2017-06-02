@@ -30,6 +30,13 @@ describe MultipleDevicesLogger::IgnoreExceptions do
       }.to change { object.exception_ignored?(IOError.new) }.from(false).to(true)
     end
 
+    it 'is true if block returns true' do
+      object.ignore_exceptions(-> (e) { e.message =~ /BAM/ })
+      expect(object.exception_ignored?(StandardError.new)).to be(false)
+      expect(object.exception_ignored?(StandardError.new('BIM'))).to be(false)
+      expect(object.exception_ignored?(StandardError.new('BIM BAM BIM'))).to be(true)
+    end
+
   end
 
   describe '#ignore_exceptions' do
@@ -86,6 +93,24 @@ describe MultipleDevicesLogger::IgnoreExceptions do
       }.to raise_error('Invalid exception class: " "')
     end
 
+    it 'accepts a proc' do
+      expect {
+        object.ignore_exceptions(-> (e) { e.present? })
+      }.to change { object.ignored_exceptions_procs.size }.by(1)
+    end
+
+    it 'accepts a block' do
+      expect {
+        object.ignore_exceptions { |e| e.present? }
+      }.to change { object.ignored_exceptions_procs.size }.by(1)
+    end
+
+    it 'accepts a proc and a class' do
+      expect {
+        object.ignore_exceptions(-> (e) { e.present? }, StandardError)
+      }.to change { object.ignored_exceptions_procs.size }.by(1)
+    end
+
   end
 
   describe '#ignored_exception_classes' do
@@ -93,6 +118,22 @@ describe MultipleDevicesLogger::IgnoreExceptions do
     it 'is exceptions ignored' do
       object.ignore_exceptions(ArgumentError, IOError)
       expect(object.ignored_exception_classes).to eq([ArgumentError, IOError])
+    end
+
+    it 'does not include procs' do
+      object.ignore_exceptions(ArgumentError, Proc.new { })
+      expect(object.ignored_exception_classes).to eq([ArgumentError])
+    end
+
+  end
+
+  describe '#ignored_exceptions_procs' do
+
+    it 'is exceptions proc ignored' do
+      p = Proc.new { }
+      expect {
+        object.ignore_exceptions(p)
+      }.to change { object.ignored_exceptions_procs }.from([]).to([p])
     end
 
   end

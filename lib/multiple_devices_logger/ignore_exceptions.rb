@@ -5,17 +5,22 @@ class MultipleDevicesLogger
     extend ActiveSupport::Concern
 
     def exception_ignored?(exception)
-      exception.is_a?(Exception) && ignored_exception_classes.any? do |klass|
-        exception.is_a?(klass)
-      end
+      return false unless exception.is_a?(Exception)
+      ignored_exception_classes.any? { |klass| exception.is_a?(klass) } || ignored_exceptions_procs.any? { |proc| proc.call(exception) }
     end
 
-    def ignore_exceptions(*classes)
+    def ignore_exceptions(*arguments, &block)
       @ignored_exception_class_names ||= []
-      [classes].flatten.each do |class_name|
-        klass = class_name.is_a?(Class) ? class_name : class_name.to_s.presence.try(:constantize)
-        raise("Invalid exception class: #{class_name.inspect}") unless klass.is_a?(Class) && (klass == Exception || (klass < Exception))
-        @ignored_exception_class_names << klass.name
+      @ignored_exceptions_procs ||= []
+      @ignored_exceptions_procs << Proc.new(&block) if block_given?
+      [arguments].flatten.each do |argument|
+        if argument.respond_to?(:call)
+          @ignored_exceptions_procs << argument
+        else
+          klass = argument.is_a?(Class) ? argument : argument.to_s.presence.try(:constantize)
+          raise("Invalid exception class: #{argument.inspect}") unless klass.is_a?(Class) && (klass == Exception || (klass < Exception))
+          @ignored_exception_class_names << klass.name
+        end
       end
       @ignored_exception_class_names.uniq!
       nil
@@ -23,6 +28,10 @@ class MultipleDevicesLogger
 
     def ignored_exception_classes
       (@ignored_exception_class_names || []).map(&:constantize)
+    end
+
+    def ignored_exceptions_procs
+      @ignored_exceptions_procs || []
     end
 
   end

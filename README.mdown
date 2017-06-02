@@ -94,6 +94,12 @@ the device:
 logger.add_device(STDERR, :debug, ignore_exceptions: [IOError, ArgumentError])
 ```
 
+In addition to classes, A lambda can be given to ignore exception, example:
+
+```ruby
+logger.ignore_exceptions(ArgumentError, -> (e) { e.message =~ /404/ }
+```
+
 ## Executing test suite
 
 This project is fully tested with [Rspec 3](http://github.com/rspec/rspec).
