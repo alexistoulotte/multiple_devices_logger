@@ -51,7 +51,7 @@ class MultipleDevicesLogger < Logger
       raise ArgumentError.new("Formatter must respond to #call, #{formatter.inspect} given") unless formatter.respond_to?(:call)
     end
     ignored_exceptions = options.delete(:ignore_exceptions)
-    device = LogDevice.new(device, options) unless device.is_a?(Logger::LogDevice)
+    device = LogDevice.new(device, **options) unless device.is_a?(Logger::LogDevice)
     device.formatter = formatter
     device.ignore_exceptions(ignored_exceptions) if ignored_exceptions.present?
     if severities.empty?

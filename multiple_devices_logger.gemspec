@@ -18,6 +18,6 @@ Gem::Specification.new do |s|
   s.add_dependency 'activesupport', '>= 4.1.0', '< 7.0.0'
 
   s.add_development_dependency 'byebug', '>= 9.0.0', '< 12.0.0'
-  s.add_development_dependency 'rake', '>= 12.0.0', '< 13.0.0'
-  s.add_development_dependency 'rspec', '>= 3.5.0', '< 3.9.0'
+  s.add_development_dependency 'rake', '>= 12.0.0', '< 14.0.0'
+  s.add_development_dependency 'rspec', '>= 3.5.0', '< 3.11.0'
 end
