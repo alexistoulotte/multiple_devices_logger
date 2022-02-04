@@ -12,7 +12,7 @@ class MultipleDevicesLogger
     def ignore_exceptions(*arguments, &block)
       @ignored_exception_class_names ||= []
       @ignored_exceptions_procs ||= []
-      @ignored_exceptions_procs << Proc.new(&block) if block_given?
+      @ignored_exceptions_procs << proc(&block) if block_given?
       [arguments].flatten.each do |argument|
         if argument.respond_to?(:call)
           @ignored_exceptions_procs << argument

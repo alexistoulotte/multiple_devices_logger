@@ -1,3 +1,4 @@
+require 'active_support/isolated_execution_state'
 require 'active_support/core_ext/module'
 require 'active_support/core_ext/string'
 require 'logger'
@@ -40,7 +41,7 @@ class MultipleDevicesLogger < Logger
     end
     true
   end
-  alias_method :log, :add
+  alias log add
 
   def add_device(device, *severities)
     severities = [severities].flatten
@@ -82,25 +83,24 @@ class MultipleDevicesLogger < Logger
     super(parse_severity(value))
   end
 
-  def reopen(log = nil)
+  def reopen(_ = nil)
     raise NotImplementedError.new("#{self.class}#reopen")
   end
 
   private
 
-  def format_message(severity, datetime, progname, msg)
+  def format_message(_severity, _datetime, _progname, _msg)
     raise NotImplementedError.new("#{self.class}#format_message")
   end
 
   def parse_severity(value)
     int_value = value.is_a?(Integer) ? value : (Integer(value.to_s) rescue nil)
     return int_value if SEVERITIES.values.include?(int_value)
-    severity = value.to_s
     SEVERITIES[value.to_s.strip.downcase] || raise(ArgumentError.new("Invalid log severity: #{value.inspect}"))
   end
 
   def parse_severities_with_operator(value)
-    if match = value.to_s.strip.match(/^([<>]=?)\s*(.+)$/)
+    if (match = value.to_s.strip.match(/^([<>]=?)\s*(.+)$/))
       operator = match[1]
       severity = parse_severity(match[2])
       return SEVERITIES.values.select { |l| l.send(operator, severity) }
@@ -118,5 +118,5 @@ end
 
 require 'multiple_devices_logger/ignore_exceptions'
 
-MultipleDevicesLogger.send(:include, MultipleDevicesLogger::IgnoreExceptions)
-Logger::LogDevice.send(:include, MultipleDevicesLogger::IgnoreExceptions)
+MultipleDevicesLogger.include MultipleDevicesLogger::IgnoreExceptions
+Logger::LogDevice.include MultipleDevicesLogger::IgnoreExceptions

@@ -101,7 +101,7 @@ describe MultipleDevicesLogger::IgnoreExceptions do
 
     it 'accepts a block' do
       expect {
-        object.ignore_exceptions { |e| e.present? }
+        object.ignore_exceptions(&:present?)
       }.to change { object.ignored_exceptions_procs.size }.by(1)
     end
 
@@ -121,7 +121,7 @@ describe MultipleDevicesLogger::IgnoreExceptions do
     end
 
     it 'does not include procs' do
-      object.ignore_exceptions(ArgumentError, Proc.new { })
+      object.ignore_exceptions(ArgumentError, proc {})
       expect(object.ignored_exception_classes).to eq([ArgumentError])
     end
 
@@ -130,7 +130,7 @@ describe MultipleDevicesLogger::IgnoreExceptions do
   describe '#ignored_exceptions_procs' do
 
     it 'is exceptions proc ignored' do
-      p = Proc.new { }
+      p = proc {}
       expect {
         object.ignore_exceptions(p)
       }.to change { object.ignored_exceptions_procs }.from([]).to([p])

@@ -11,108 +11,108 @@ describe MultipleDevicesLogger do
   describe '#add' do
 
     before :each do
-      logger.add_device(STDERR, '>= WARN')
+      logger.add_device($stderr, '>= WARN')
     end
 
     it 'write to device' do
-      expect(STDERR).to receive(:write).with(/BAM!/)
+      expect($stderr).to receive(:write).with(/BAM!/)
       logger.add(Logger::WARN, 'BAM!')
     end
 
     it 'use a default formatter' do
-      expect(STDERR).to receive(:write).with(/^W, \[\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+ #\d+\]  WARN -- MyApp: BAM!\n$/)
+      expect($stderr).to receive(:write).with(/^W, \[\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+ #\d+\]  WARN -- MyApp: BAM!\n$/)
       logger.add(Logger::WARN, 'BAM!', 'MyApp')
     end
 
     it 'write to multiple device if configured' do
-      logger.add_device(STDOUT)
-      expect(STDERR).to receive(:write).with(/BAM!/)
-      expect(STDOUT).to receive(:write).with(/BAM!/)
+      logger.add_device($stdout)
+      expect($stderr).to receive(:write).with(/BAM!/)
+      expect($stdout).to receive(:write).with(/BAM!/)
       logger.add(Logger::WARN, 'BAM!')
     end
 
     it 'does not write anything if given severity is lower than configured level' do
       logger.level = :error
-      expect(STDERR).not_to receive(:write)
+      expect($stderr).not_to receive(:write)
       logger.add(Logger::WARN, 'BAM!')
     end
 
     it 'severity is UNKNOWN if not specified' do
-      expect(STDERR).to receive(:write).with(/ANY -- : BIM!/)
+      expect($stderr).to receive(:write).with(/ANY -- : BIM!/)
       logger.add(nil, 'BIM!')
     end
 
     it 'a block can be given' do
-      expect(STDERR).to receive(:write).with(/BIM!/)
+      expect($stderr).to receive(:write).with(/BIM!/)
       logger.add(Logger::ERROR) { 'BIM!' }
     end
 
     it 'accepts progname' do
-      expect(STDERR).to receive(:write).with(/FATAL -- MyApp: BAM!/)
+      expect($stderr).to receive(:write).with(/FATAL -- MyApp: BAM!/)
       logger.add(Logger::FATAL, 'BAM!', 'MyApp')
     end
 
     it 'returns true' do
-      expect(STDERR).to receive(:write)
+      expect($stderr).to receive(:write)
       expect(logger.add(Logger::WARN, 'BAM!')).to be(true)
     end
 
     it 'returns true if nothing is written' do
       logger.level = :error
-      expect(STDERR).not_to receive(:write)
+      expect($stderr).not_to receive(:write)
       expect(logger.add(Logger::WARN, 'BAM!')).to be(true)
     end
 
     it 'block is ignored if message is given' do
-      expect(STDERR).to receive(:write).with(/BAM!/)
+      expect($stderr).to receive(:write).with(/BAM!/)
       logger.add(Logger::WARN, 'BAM!') { 'BIM!' }
     end
 
     it 'message is progname if nil' do
-      expect(STDERR).to receive(:write).with(/WARN -- : BAM!/)
+      expect($stderr).to receive(:write).with(/WARN -- : BAM!/)
       logger.add(Logger::WARN, nil, 'BAM!')
     end
 
     it 'use formatter set' do
-      logger.add_device(STDERR, '> debug', formatter: -> (severity, time, progname, message) { "Hello #{message}" })
-      expect(STDERR).to receive(:write).with('Hello John')
+      logger.add_device($stderr, '> debug', formatter: -> (_severity, _time, _progname, message) { "Hello #{message}" })
+      expect($stderr).to receive(:write).with('Hello John')
       logger.add(Logger::INFO, 'John')
     end
 
     it 'use default formatter if not set' do
-      logger.formatter = -> (severity, time, progname, message) { "Hello #{progname}: #{message}"  }
-      expect(STDERR).to receive(:write).with('Hello World: cool')
+      logger.formatter = -> (_severity, _time, progname, message) { "Hello #{progname}: #{message}" }
+      expect($stderr).to receive(:write).with('Hello World: cool')
       logger.add(Logger::WARN, 'cool', 'World')
     end
 
     it 'use default formatter if formatter set via #set_formatter does not match severity' do
-      logger.add_device(STDERR, '<= info', formatter: -> (severity, time, progname, message) { "Hello #{message}" })
+      logger.add_device($stderr, '<= info', formatter: -> (_severity, _time, _progname, message) { "Hello #{message}" })
 
-      expect(STDERR).to receive(:write).with(/WARN -- : John/)
+      expect($stderr).to receive(:write).with(/WARN -- : John/)
       logger.add(Logger::WARN, 'John')
 
-      expect(STDERR).to receive(:write).with('Hello John')
+      expect($stderr).to receive(:write).with('Hello John')
       logger.add(Logger::DEBUG, 'John')
 
-      expect(STDERR).to receive(:write).with('Hello John')
+      expect($stderr).to receive(:write).with('Hello John')
       logger.add(Logger::INFO, 'John')
     end
 
     it 'is correct with an exception' do
-      expect(STDERR).to receive(:write).with(/WARN -- : BAM! \(IOError\)/)
+      expect($stderr).to receive(:write).with(/WARN -- : BAM! \(IOError\)/)
       logger.add(Logger::WARN, IOError.new('BAM!'))
     end
 
     it 'does nothing if exception is ignored' do
       logger.ignore_exceptions(IOError)
-      expect(STDERR).not_to receive(:write)
+      expect($stderr).not_to receive(:write)
       logger.add(Logger::WARN, IOError.new('BAM!'))
     end
 
     it 'does nothing if exception is ignored (on device)' do
-      logger.add_device(STDOUT, ignore_exceptions: IOError)
-      expect(STDERR).to receive(:write)
-      expect(STDOUT).not_to receive(:write)
+      logger.add_device($stdout, ignore_exceptions: IOError)
+      expect($stderr).to receive(:write)
+      expect($stdout).not_to receive(:write)
       logger.add(Logger::WARN, IOError.new('BAM!'))
     end
 
@@ -127,13 +127,13 @@ describe MultipleDevicesLogger do
 
     it 'adds a device for all severities if given severity is nil' do
       expect {
-        logger.add_device(STDOUT)
+        logger.add_device($stdout)
       }.to change { logger.devices_for(Logger::INFO).size }.by(1)
-      expect(logger.devices_for(Logger::WARN).first.dev).to be(STDOUT)
+      expect(logger.devices_for(Logger::WARN).first.dev).to be($stdout)
     end
 
     it 'does not adds to other severities if severity is specified' do
-      logger.add_device(STDERR, Logger::WARN)
+      logger.add_device($stderr, Logger::WARN)
       expect(logger.devices_for(Logger::WARN)).not_to be_empty
       expect(logger.devices_for(Logger::INFO)).to be_empty
       expect(logger.devices_for(Logger::ERROR)).to be_empty
@@ -141,60 +141,60 @@ describe MultipleDevicesLogger do
 
     it 'severity can be specified as constant' do
       expect {
-        logger.add_device(STDERR, Logger::WARN)
+        logger.add_device($stderr, Logger::WARN)
       }.to change { logger.devices_for(Logger::WARN).size }.by(1)
     end
 
     it 'severity can be specified as symbol' do
       expect {
-        logger.add_device(STDOUT, :warn)
+        logger.add_device($stdout, :warn)
       }.to change { logger.devices_for(Logger::WARN).size }.by(1)
     end
 
     it 'severity can be specified as symbol (ignore case)' do
       expect {
-        logger.add_device(STDOUT, :waRN)
+        logger.add_device($stdout, :waRN)
       }.to change { logger.devices_for(Logger::WARN).size }.by(1)
     end
 
     it 'severity can be specified as string' do
       expect {
-        logger.add_device(STDOUT, 'fatal')
+        logger.add_device($stdout, 'fatal')
       }.to change { logger.devices_for(Logger::FATAL).size }.by(1)
     end
 
     it 'severity can be specified as string (ignore case)' do
       expect {
-        logger.add_device(STDOUT, 'FATal')
+        logger.add_device($stdout, 'FATal')
       }.to change { logger.devices_for(Logger::FATAL).size }.by(1)
     end
 
     it 'severity can be specified as string (with extra spaces)' do
       expect {
-        logger.add_device(STDOUT, " fatal \n")
+        logger.add_device($stdout, " fatal \n")
       }.to change { logger.devices_for(Logger::FATAL).size }.by(1)
     end
 
     it 'severity can be specified as integer' do
       expect {
-        logger.add_device(STDOUT, 0)
+        logger.add_device($stdout, 0)
       }.to change { logger.devices_for(Logger::DEBUG).size }.by(1)
     end
 
     it 'severity can be specified as integer (as string)' do
       expect {
-        logger.add_device(STDOUT, '3')
+        logger.add_device($stdout, '3')
       }.to change { logger.devices_for(Logger::ERROR).size }.by(1)
     end
 
     it 'severity can be specified as integer (as string with spaces)' do
       expect {
-        logger.add_device(STDOUT, ' 2  ')
+        logger.add_device($stdout, ' 2  ')
       }.to change { logger.devices_for(Logger::WARN).size }.by(1)
     end
 
     it 'many severities can be given' do
-      logger.add_device(STDERR, Logger::DEBUG, Logger::WARN)
+      logger.add_device($stderr, Logger::DEBUG, Logger::WARN)
       expect(logger.devices_for(Logger::DEBUG)).not_to be_empty
       expect(logger.devices_for(Logger::WARN)).not_to be_empty
       expect(logger.devices_for(Logger::INFO)).to be_empty
@@ -202,57 +202,57 @@ describe MultipleDevicesLogger do
     end
 
     it 'an array of severities can be given' do
-      logger.add_device(STDERR, [Logger::DEBUG, Logger::WARN])
+      logger.add_device($stderr, [Logger::DEBUG, Logger::WARN])
       expect(logger.devices_for(Logger::DEBUG)).not_to be_empty
       expect(logger.devices_for(Logger::WARN)).not_to be_empty
       expect(logger.devices_for(Logger::INFO)).to be_empty
     end
 
     it 'avoids doubloons on severities' do
-      logger.add_device(STDOUT, Logger::DEBUG, Logger::INFO, Logger::DEBUG)
+      logger.add_device($stdout, Logger::DEBUG, Logger::INFO, Logger::DEBUG)
       expect(logger.devices_for(Logger::DEBUG).size).to eq(1)
     end
 
     it 'raise an error if severity specified as integer is too high' do
       expect {
-        logger.add_device(STDERR, 8)
+        logger.add_device($stderr, 8)
       }.to raise_error(ArgumentError, 'Invalid log severity: 8')
     end
 
     it 'raise an error if severity specified as integer is negative' do
       expect {
-        logger.add_device(STDERR, -1)
+        logger.add_device($stderr, -1)
       }.to raise_error(ArgumentError, 'Invalid log severity: -1')
     end
 
     it 'does not add any device if one severity is invalid' do
       expect {
         expect {
-          logger.add_device(STDOUT, Logger::DEBUG, 'bim')
+          logger.add_device($stdout, Logger::DEBUG, 'bim')
         }.to raise_error(ArgumentError, 'Invalid log severity: "bim"')
       }.not_to change { logger.devices_for(Logger::DEBUG).size }
     end
 
     it 'raise an error if severity is unknown (as string)' do
       expect {
-        logger.add_device(STDOUT, 'errors')
+        logger.add_device($stdout, 'errors')
       }.to raise_error(ArgumentError, 'Invalid log severity: "errors"')
     end
 
     it 'may have many device for a severity' do
-      logger.add_device(STDERR, Logger::INFO).add_device(STDOUT, Logger::INFO)
+      logger.add_device($stderr, Logger::INFO).add_device($stdout, Logger::INFO)
       expect(logger.devices_for(Logger::DEBUG)).to be_empty
       expect(logger.devices_for(Logger::INFO).size).to eq(2)
       expect(logger.devices_for(Logger::FATAL)).to be_empty
     end
 
     it 'returns self' do
-      expect(logger.add_device(STDOUT)).to be(logger)
-      expect(logger.add_device(STDOUT, Logger::DEBUG)).to be(logger)
+      expect(logger.add_device($stdout)).to be(logger)
+      expect(logger.add_device($stdout, Logger::DEBUG)).to be(logger)
     end
 
     it 'accepts <= operator' do
-      logger.add_device(STDOUT, '<= warn')
+      logger.add_device($stdout, '<= warn')
       expect(logger.devices_for(Logger::DEBUG)).not_to be_empty
       expect(logger.devices_for(Logger::INFO)).not_to be_empty
       expect(logger.devices_for(Logger::WARN)).not_to be_empty
@@ -260,7 +260,7 @@ describe MultipleDevicesLogger do
     end
 
     it 'accepts < operator' do
-      logger.add_device(STDOUT, '< warn')
+      logger.add_device($stdout, '< warn')
       expect(logger.devices_for(Logger::DEBUG)).not_to be_empty
       expect(logger.devices_for(Logger::INFO)).not_to be_empty
       expect(logger.devices_for(Logger::WARN)).to be_empty
@@ -268,14 +268,14 @@ describe MultipleDevicesLogger do
     end
 
     it 'accepts > operator' do
-      logger.add_device(STDOUT, '> error')
+      logger.add_device($stdout, '> error')
       expect(logger.devices_for(Logger::UNKNOWN)).not_to be_empty
       expect(logger.devices_for(Logger::FATAL)).not_to be_empty
       expect(logger.devices_for(Logger::ERROR)).to be_empty
     end
 
     it 'accepts >= operator' do
-      logger.add_device(STDOUT, '>= error')
+      logger.add_device($stdout, '>= error')
       expect(logger.devices_for(Logger::UNKNOWN)).not_to be_empty
       expect(logger.devices_for(Logger::FATAL)).not_to be_empty
       expect(logger.devices_for(Logger::ERROR)).not_to be_empty
@@ -283,14 +283,14 @@ describe MultipleDevicesLogger do
     end
 
     it 'accepts operator with spaces and with a different case' do
-      logger.add_device(STDOUT, " \n > eRRor  ")
+      logger.add_device($stdout, " \n > eRRor  ")
       expect(logger.devices_for(Logger::UNKNOWN)).not_to be_empty
       expect(logger.devices_for(Logger::FATAL)).not_to be_empty
       expect(logger.devices_for(Logger::ERROR)).to be_empty
     end
 
     it 'accepts operator with no spaces' do
-      logger.add_device(STDOUT, ">error")
+      logger.add_device($stdout, '>error')
       expect(logger.devices_for(Logger::UNKNOWN)).not_to be_empty
       expect(logger.devices_for(Logger::FATAL)).not_to be_empty
       expect(logger.devices_for(Logger::ERROR)).to be_empty
@@ -298,62 +298,62 @@ describe MultipleDevicesLogger do
 
     it 'raise an error if operator is invalid' do
       expect {
-        logger.add_device(STDERR, '!> error')
+        logger.add_device($stderr, '!> error')
       }.to raise_error(ArgumentError, 'Invalid log severity: "!> error"')
     end
 
     it 'raise an error if severity is invalid (with operator)' do
       expect {
-        logger.add_device(STDERR, '>= foo')
+        logger.add_device($stderr, '>= foo')
       }.to raise_error(ArgumentError, 'Invalid log severity: "foo"')
     end
 
     it 'avoid doubloons with operator' do
-      logger.add_device(STDERR, Logger::INFO, '>= DEBUG')
+      logger.add_device($stderr, Logger::INFO, '>= DEBUG')
       expect(logger.devices_for(Logger::DEBUG).size).to eq(1)
       expect(logger.devices_for(Logger::INFO).size).to eq(1)
       expect(logger.devices_for(Logger::WARN).size).to eq(1)
     end
 
     it 'may have many devices for a severity with an operator' do
-      logger.add_device(STDERR, Logger::INFO).add_device(STDOUT, '<= error')
+      logger.add_device($stderr, Logger::INFO).add_device($stdout, '<= error')
       expect(logger.devices_for(Logger::DEBUG).size).to eq(1)
       expect(logger.devices_for(Logger::INFO).size).to eq(2)
       expect(logger.devices_for(Logger::FATAL)).to be_empty
     end
 
     it 'register LogDevice directly if a LogDevice is given' do
-      device = Logger::LogDevice.new(STDERR)
+      device = Logger::LogDevice.new($stderr)
       logger.add_device(device, Logger::INFO)
       expect(logger.devices_for(Logger::INFO).first).to be(device)
     end
 
     it 'given options are forwared to LogDevice constructor' do
-      device = Logger::LogDevice.new(STDOUT)
-      expect(Logger::LogDevice).to receive(:new).with(STDOUT, foo: 'bar').and_return(device)
-      logger.add_device(STDOUT, Logger::INFO, foo: 'bar')
+      device = Logger::LogDevice.new($stdout)
+      expect(Logger::LogDevice).to receive(:new).with($stdout, foo: 'bar').and_return(device)
+      logger.add_device($stdout, Logger::INFO, foo: 'bar')
     end
 
     it 'does not forward :formatter option to log device constructor' do
-      device = Logger::LogDevice.new(STDOUT)
-      expect(Logger::LogDevice).to receive(:new).with(STDOUT, foo: 'bar').and_return(device)
-      logger.add_device(STDOUT, Logger::INFO, foo: 'bar', formatter: -> {})
+      device = Logger::LogDevice.new($stdout)
+      expect(Logger::LogDevice).to receive(:new).with($stdout, foo: 'bar').and_return(device)
+      logger.add_device($stdout, Logger::INFO, foo: 'bar', formatter: -> {})
     end
 
     it 'raise an error for default severity' do
       expect {
-        logger.add_device(STDERR, 'default')
+        logger.add_device($stderr, 'default')
       }.to raise_error(ArgumentError, 'Invalid log severity: "default"')
     end
 
     it 'raise an error if formatter is not a proc' do
       expect {
-        logger.add_device(STDOUT, formatter: :foo)
+        logger.add_device($stdout, formatter: :foo)
       }.to raise_error(ArgumentError, 'Formatter must respond to #call, :foo given')
     end
 
     it 'accepts :ignore_exceptions option' do
-      logger.add_device(STDERR, :debug, ignore_exceptions: [IOError, ArgumentError])
+      logger.add_device($stderr, :debug, ignore_exceptions: [IOError, ArgumentError])
       expect(logger.devices_for(:debug).first.ignored_exception_classes).to eq([IOError, ArgumentError])
     end
 
@@ -362,7 +362,7 @@ describe MultipleDevicesLogger do
   describe '#clear_devices' do
 
     it 'removes registered loggers' do
-      logger.add_device(STDERR)
+      logger.add_device($stderr)
       expect {
         logger.clear_devices
       }.to change { logger.devices_for(Logger::DEBUG) }.to([])
@@ -377,21 +377,21 @@ describe MultipleDevicesLogger do
     end
 
     it 'can be changed' do
-      logger.default_device = STDERR
+      logger.default_device = $stderr
       expect(logger.default_device).not_to be_nil
     end
 
     it 'is converted to a LogDevice when set' do
-      logger.default_device = STDERR
+      logger.default_device = $stderr
       expect(logger.default_device).to be_a(Logger::LogDevice)
-      expect(logger.default_device.dev).to be(STDERR)
+      expect(logger.default_device.dev).to be($stderr)
     end
 
     it 'is not converted to a LogDevice when a LogDevice is set' do
-      device = Logger::LogDevice.new(STDOUT)
+      device = Logger::LogDevice.new($stdout)
       logger.default_device = device
       expect(logger.default_device).to be(device)
-      expect(logger.default_device.dev).to be(STDOUT)
+      expect(logger.default_device.dev).to be($stdout)
     end
 
   end
@@ -399,14 +399,14 @@ describe MultipleDevicesLogger do
   describe '#devices_for' do
 
     it 'accepts strings' do
-      logger.add_device(STDERR, 'warn')
+      logger.add_device($stderr, 'warn')
       expect(logger.devices_for('warn').size).to eq(1)
     end
 
     it 'returns a LogDevice instance' do
-      logger.add_device(STDERR, 'warn')
+      logger.add_device($stderr, 'warn')
       expect(logger.devices_for(:warn).first).to be_a(Logger::LogDevice)
-      expect(logger.devices_for(:warn).first.dev).to be(STDERR)
+      expect(logger.devices_for(:warn).first.dev).to be($stderr)
     end
 
     it 'returns an empty array if there is not registered device for given severity' do
@@ -414,19 +414,19 @@ describe MultipleDevicesLogger do
     end
 
     it 'returns default device if there is no device for given severity' do
-      logger.default_device = STDERR
-      logger.add_device(STDOUT, '>= warn')
-      expect(logger.devices_for(:debug).first.dev).to be(STDERR)
-      expect(logger.devices_for(:warn).first.dev).to be(STDOUT)
-      expect(logger.devices_for(:error).first.dev).to be(STDOUT)
+      logger.default_device = $stderr
+      logger.add_device($stdout, '>= warn')
+      expect(logger.devices_for(:debug).first.dev).to be($stderr)
+      expect(logger.devices_for(:warn).first.dev).to be($stdout)
+      expect(logger.devices_for(:error).first.dev).to be($stdout)
     end
 
     it 'default is never used if a logger has been added to all severity' do
-      logger.default_device = STDERR
-      logger.add_device(STDOUT)
-      expect(logger.devices_for(:debug).first.dev).to be(STDOUT)
-      expect(logger.devices_for(:warn).first.dev).to be(STDOUT)
-      expect(logger.devices_for(:error).first.dev).to be(STDOUT)
+      logger.default_device = $stderr
+      logger.add_device($stdout)
+      expect(logger.devices_for(:debug).first.dev).to be($stdout)
+      expect(logger.devices_for(:warn).first.dev).to be($stdout)
+      expect(logger.devices_for(:error).first.dev).to be($stdout)
     end
 
   end
@@ -453,7 +453,7 @@ describe MultipleDevicesLogger do
 
     it 'is not changed when adding devices' do
       expect {
-        logger.add_device(STDOUT, '> WARN')
+        logger.add_device($stdout, '> WARN')
       }.not_to change { logger.level }
     end
 
@@ -490,8 +490,8 @@ describe MultipleDevicesLogger do
   describe '#log' do
 
     it 'works like expected' do
-      logger.add_device(STDOUT, Logger::WARN)
-      expect(STDOUT).to receive(:write).with(/WARN -- : BAM!/)
+      logger.add_device($stdout, Logger::WARN)
+      expect($stdout).to receive(:write).with(/WARN -- : BAM!/)
       logger.log(Logger::WARN, 'BAM!')
     end
 
@@ -510,14 +510,14 @@ describe MultipleDevicesLogger do
   describe '#warn' do
 
     it 'does not output anything if there is no device' do
-      logger.add_device(STDOUT, Logger::DEBUG)
-      expect(STDOUT).not_to receive(:write)
+      logger.add_device($stdout, Logger::DEBUG)
+      expect($stdout).not_to receive(:write)
       logger.warn('BAM!')
     end
 
     it 'output message to device if configured' do
-      logger.add_device(STDOUT, Logger::WARN)
-      expect(STDOUT).to receive(:write).with(/WARN -- : BAM!/)
+      logger.add_device($stdout, Logger::WARN)
+      expect($stdout).to receive(:write).with(/WARN -- : BAM!/)
       logger.warn('BAM!')
     end
 
